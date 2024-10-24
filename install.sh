@@ -16,4 +16,5 @@ if [ ! -f $INSTALL_DIR/.env ]; then
 	curl -fsSL https://raw.githubusercontent.com/bobbles911/server-backup/refs/heads/main/example.env > $INSTALL_DIR/.env
 fi
 
-echo "Please edit the .env file '$INSTALL_DIR/.env' and then run '$INSTALL_DIR/backup.py install'"
+echo -e "\nSuccess, but it's not running yet!"
+echo -e "Please edit the .env file '$INSTALL_DIR/.env' and then run '$INSTALL_DIR/backup.py install' to finish installation."

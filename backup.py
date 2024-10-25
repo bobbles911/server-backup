@@ -209,9 +209,15 @@ def main():
 
 		if len(sys.argv) > 1 and sys.argv[1] == "install":
 			print("Installing...")
-
 			print("Initialising restic repository...")
-			run_command("restic init")
+
+			try:
+				run_command("restic cat config")
+			except subprocess.CalledProcessError as e:
+				print("Restic repo not detected, initialising now...")
+				run_command("restic init")
+			else:
+				print("Restic repo already exists.")
 
 			print("Creating cron.daily...")
 			run_command(f"ln -s {__file__} /etc/cron.daily/server-backup")

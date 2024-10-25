@@ -264,8 +264,8 @@ def main():
 					+ "".join([f" {path}\n" for path in vol_paths])
 					+ "\n"
 					+ "Restic repository commands:\n"
-					+ f" restic -r {restic_repo} mount /mnt/restic"
-					+ f" restic -r {restic_repo} snapshots"
+					+ f" restic -r {restic_repo} mount /mnt/restic\n"
+					+ f" restic -r {restic_repo} snapshots\n"
 				, True)
 			else:
 				print("Something failed.")

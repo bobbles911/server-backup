@@ -195,6 +195,7 @@ def backup_volumes():
 def main():
 	try:
 		load_dotenv()
+		script_path = os.path.abspath(__file__)
 		aws_endpoint_bucket = os.environ["AWS_ENDPOINT_BUCKET"]
 		
 		os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -220,11 +221,11 @@ def main():
 				print("Restic repo already exists.")
 
 			print("Creating cron.daily...")
-			run_command(f"ln -s {__file__} /etc/cron.daily/server-backup")
+			run_command(f"ln -s {script_path} /etc/cron.daily/server-backup")
 		elif len(sys.argv) > 1 and sys.argv[1] == "uninstall":
 			print("Removing cron.daily...")
 			os.remove("/etc/cron.daily/server-backup")
-			print(f"Done. You'll need to manually delete the directory {os.path.dirname(__file__)}")
+			print(f"Done. You'll need to manually delete the directory {os.path.dirname(script_path)}")
 		else:
 			print("Backing up... " + server_name)
 			print(" s3 endpoint", s3_endpoint)

@@ -4,8 +4,8 @@ echo "Installing..."
 INSTALL_DIR=~/.server-backup
 
 apt update
-apt install -y restic python3-dotenv
-snap install aws-cli --classic
+apt install -y restic python3-dotenv pipx
+pipx install awscli
 
 mkdir -p $INSTALL_DIR
 

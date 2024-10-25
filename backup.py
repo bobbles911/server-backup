@@ -27,15 +27,19 @@ def send_email(sender_email, recipient_email, subject, message, sender_name=None
 	server.sendmail(sender_email, recipient_email, msg.as_string())
 
 def send_report(message, success=False):
-	backup_day = (datetime.now() - timedelta(hours=6)).strftime("%a %d")
+	print(message)
 
-	send_email(
-		os.environ["SYSTEM_EMAIL_ADDRESS"],
-		os.environ["NOTIFICATION_EMAIL_ADDRESS"],
-		f"{backup_day} - Backup success ^_^" if success else f"WARNING: {backup_day.upper()} BACKUP FAILED!",
-		message,
-		sender_name=os.environ["SYSTEM_EMAIL_NAME"]
-	)
+	if os.environ.get("SMTP_PASSWORD", None):
+		# Assuming the script is run around midnight, then 6 hours ago should be the previous day.
+		backup_day = (datetime.now() - timedelta(hours=6)).strftime("%a %d")
+
+		send_email(
+			os.environ["SYSTEM_EMAIL_ADDRESS"],
+			os.environ["NOTIFICATION_EMAIL_ADDRESS"],
+			f"{backup_day} - Backup success ^_^" if success else f"WARNING: {backup_day.upper()} BACKUP FAILED!",
+			message,
+			sender_name=os.environ["SYSTEM_EMAIL_NAME"]
+		)
 
 def run_command(command):
 	result = subprocess.run(command, shell=True, text=True, capture_output=True, check=True)
@@ -152,7 +156,6 @@ def backup_databases(s3_endpoint, db_bucket_path):
 				run_command(f"aws s3 cp '{backup_path}' 's3://{db_bucket_path}/{backup_name}' --endpoint-url='https://{s3_endpoint}'")
 				os.remove(backup_path)
 			except Exception as e:
-				print(f"A database backup failed: {backup_name}\n{e}")
 				send_report(f"A database backup failed: {backup_name}\n{e}")
 				success = False
 
@@ -178,11 +181,9 @@ def backup_volumes():
 			try:
 				run_command("restic backup --verbose --exclude-caches '{backup_path}'")
 			except Exception as e:
-				print(f"Volume backup failed: {backup_path}\n{e}")
 				send_report(f"Volume backup failed: {backup_path}\n{e}")
 				success = False
 		else:
-			print(f"Backup path did not exist: {backup_path}")
 			send_report(f"Backup path did not exist: {backup_path}")
 			success = False
 	
@@ -208,7 +209,16 @@ def main():
 
 		if len(sys.argv) > 1 and sys.argv[1] == "install":
 			print("Installing...")
+
+			print("Initialising restic repository...")
 			run_command("restic init")
+
+			print("Creating cron.daily...")
+			run_command(f"ln -s {__file__} /etc/cron.daily/server-backup")
+		elif len(sys.argv) > 1 and sys.argv[1] == "uninstall":
+			print("Removing cron.daily...")
+			os.remove("/etc/cron.daily/server-backup")
+			print(f"Done. You'll need to manually delete the directory {os.path.dirname(__file__)}")
 		else:
 			print("Backing up... " + server_name)
 			print(" s3 endpoint", s3_endpoint)
@@ -218,10 +228,10 @@ def main():
 
 			if (backup_databases(s3_endpoint, db_bucket_path) and backup_volumes()):
 				send_report("All backups were successful.", True)
+			else:
+				print("Something failed.")
 
 	except Exception as e:
-		# Log this somehow!!
-		print("Unhandled exception", e)
 		send_report(f"Unhandled exception:\n{e}")
 		raise e
 

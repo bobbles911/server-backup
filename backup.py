@@ -221,7 +221,7 @@ def main():
 				print("Restic repo already exists.")
 
 			print("Creating cron.daily...")
-			run_command(f"ln -s {script_path} /etc/cron.daily/server-backup")
+			run_command(f"ln -s '{script_path}' /etc/cron.daily/server-backup")
 		elif len(sys.argv) > 1 and sys.argv[1] == "uninstall":
 			print("Removing cron.daily...")
 			os.remove("/etc/cron.daily/server-backup")

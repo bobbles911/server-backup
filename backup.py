@@ -229,6 +229,7 @@ def main():
 
 			print("Creating cron.daily...")
 			run_command(f"ln -sf '{abs_script_path}' /etc/cron.daily/server-backup")
+			print("Done")
 		elif len(sys.argv) > 1 and sys.argv[1] == "uninstall":
 			print("Removing cron.daily...")
 			os.remove("/etc/cron.daily/server-backup")

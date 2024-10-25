@@ -5,6 +5,7 @@ INSTALL_DIR=~/.server-backup
 
 apt update
 apt install -y restic python3-dotenv pipx
+pipx ensurepath
 pipx install awscli
 
 mkdir -p $INSTALL_DIR

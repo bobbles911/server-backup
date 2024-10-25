@@ -28,13 +28,16 @@ def send_report(message, success=False):
 	print(message)
 
 	if os.environ.get("SMTP_PASSWORD", None):
+		hostname = run_command("hostname")
+
 		# Assuming the script is run around midnight, then 6 hours ago should be the previous day.
 		backup_day = (datetime.now() - timedelta(hours=6)).strftime("%a %d")
 
 		send_email(
 			os.environ["SYSTEM_EMAIL_ADDRESS"],
 			os.environ["NOTIFICATION_EMAIL_ADDRESS"],
-			f"{backup_day} - Backup success ^_^" if success else f"Warning: {backup_day.upper()} BACKUP FAILED *_*",
+			(f"{backup_day} - Backup of {hostname} was successful ^_^" if success else
+				f"Warning: {backup_day.upper()} {hostname} BACKUP FAILED *_*"),
 			message,
 			sender_name=os.environ["SYSTEM_EMAIL_NAME"]
 		)
@@ -128,6 +131,7 @@ def backup_databases(backup_dir, s3_endpoint, db_bucket_path):
 	success = True
 	timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+	backup_names = [] # for informational purposes
 	containers = get_containers()
 
 	if not containers:
@@ -144,6 +148,8 @@ def backup_databases(backup_dir, s3_endpoint, db_bucket_path):
 			db_name = backup_provider.get_db_name(env_vars)
 
 			backup_name = f"{container_id}_{name}_{db_name}_{timestamp}.{ext}"
+			backup_names.append(backup_name)
+
 			backup_path = os.path.join(backup_dir, backup_name)
 
 			try:
@@ -158,7 +164,7 @@ def backup_databases(backup_dir, s3_endpoint, db_bucket_path):
 				success = False
 
 	print(f"Database backups complete.")
-	return success
+	return (success, backup_names)
 
 # Backup docker volumes plus any extra given paths using restic.
 def backup_volumes():
@@ -188,7 +194,7 @@ def backup_volumes():
 	run_command("restic forget --verbose --keep-daily 30 --keep-weekly 52 --prune")
 	run_command("restic check")
 	
-	return success
+	return (success, backup_paths)
 
 def main():
 	try:
@@ -234,8 +240,25 @@ def main():
 			print(" restic repo " + restic_repo)
 			print(" db bucket path " + db_bucket_path)
 
-			if (backup_databases(abs_db_dump_dir, s3_endpoint, db_bucket_path) and backup_volumes()):
-				send_report("All backups were successful.", True)
+			db_backup_success, db_names = backup_databases(abs_db_dump_dir, s3_endpoint, db_bucket_path)
+			vol_backup_success, vol_paths = backup_volumes()
+
+			if db_backup_success and vol_backup_success:
+				send_report(
+					"All backups were successful.\n"
+					"\n"
+					f"Server name: {server_name}\n"
+					f"S3 Endpoint: {s3_endpoint}\n"
+					f"S3 Bucket: {s3_bucket}\n"
+					f"Database backup path: {db_bucket_path}\n"
+					f"Restic repository: {restic_repo}\n"
+					"\n"
+					"Databases backed up:\n"
+					"".join[f" {name}\n" for name in db_names]
+					"\n"
+					"Paths backed up with restic:\n"
+					"".join[f" {path}\n" for path in vol_paths]
+				, True)
 			else:
 				print("Something failed.")
 

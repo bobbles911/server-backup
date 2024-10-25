@@ -176,12 +176,12 @@ def backup_volumes():
 	if extra_backup_paths:
 		backup_paths.extend(extra_backup_paths.split(","))
 
-	print("Backing up paths", backup_paths)
-
 	run_command("restic unlock")
 
 	for backup_path in backup_paths:
 		if os.path.exists(backup_path):
+			print("Backing up", backup_path)
+
 			try:
 				run_command(f"restic backup --verbose --exclude-caches '{backup_path}'")
 			except Exception as e:
@@ -240,7 +240,10 @@ def main():
 			print(" restic repo " + restic_repo)
 			print(" db bucket path " + db_bucket_path)
 
+			print("Backing up databases...")
 			db_backup_success, db_names = backup_databases(abs_db_dump_dir, s3_endpoint, db_bucket_path)
+
+			print("Backing up volumes...")
 			vol_backup_success, vol_paths = backup_volumes()
 
 			if db_backup_success and vol_backup_success:
@@ -254,10 +257,10 @@ def main():
 					f"Restic repository: {restic_repo}\n"
 					"\n"
 					"Databases backed up:\n"
-					"".join[f" {name}\n" for name in db_names]
-					"\n"
-					"Paths backed up with restic:\n"
-					"".join[f" {path}\n" for path in vol_paths]
+					+ "".join([f" {name}\n" for name in db_names])
+					+ "\n"
+					+ "Paths backed up with restic:\n"
+					+ "".join([f" {path}\n" for path in vol_paths])
 				, True)
 			else:
 				print("Something failed.")

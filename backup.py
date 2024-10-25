@@ -36,14 +36,14 @@ def send_report(message, success=False):
 		send_email(
 			os.environ["SYSTEM_EMAIL_ADDRESS"],
 			os.environ["NOTIFICATION_EMAIL_ADDRESS"],
-			f"{backup_day} - Backup success ^_^" if success else f"WARNING: {backup_day.upper()} BACKUP FAILED!",
+			f"{backup_day} - Backup success ^_^" if success else f"Warning: {backup_day.upper()} BACKUP FAILED *_*",
 			message,
 			sender_name=os.environ["SYSTEM_EMAIL_NAME"]
 		)
 
 def run_command(command):
 	result = subprocess.run(command, shell=True, text=True, capture_output=True, check=True)
-	print(result.stdout.strip())
+	#print(result.stdout.strip())
 	return result.stdout.strip()
 
 def get_server_name():
@@ -179,7 +179,7 @@ def backup_volumes():
 	for backup_path in backup_paths:
 		if os.path.exists(backup_path):
 			try:
-				run_command("restic backup --verbose --exclude-caches '{backup_path}'")
+				run_command(f"restic backup --verbose --exclude-caches '{backup_path}'")
 			except Exception as e:
 				send_report(f"Volume backup failed: {backup_path}\n{e}")
 				success = False
@@ -221,7 +221,7 @@ def main():
 				print("Restic repo already exists.")
 
 			print("Creating cron.daily...")
-			run_command(f"ln -s '{script_path}' /etc/cron.daily/server-backup")
+			run_command(f"ln -sf '{script_path}' /etc/cron.daily/server-backup")
 		elif len(sys.argv) > 1 and sys.argv[1] == "uninstall":
 			print("Removing cron.daily...")
 			os.remove("/etc/cron.daily/server-backup")

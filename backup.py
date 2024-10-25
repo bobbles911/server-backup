@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 
-BACKUP_DIR="./backups"
-
 def send_email(sender_email, recipient_email, subject, message, sender_name=None, recipient_name=None):
 	msg = MIMEText(message)
 
@@ -126,7 +124,7 @@ def get_env_vars(container_id):
 	return env_vars
 
 # Main backup function
-def backup_databases(s3_endpoint, db_bucket_path):
+def backup_databases(backup_dir, s3_endpoint, db_bucket_path):
 	success = True
 	timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -146,7 +144,7 @@ def backup_databases(s3_endpoint, db_bucket_path):
 			db_name = backup_provider.get_db_name(env_vars)
 
 			backup_name = f"{container_id}_{name}_{db_name}_{timestamp}.{ext}"
-			backup_path = os.path.join(BACKUP_DIR, backup_name)
+			backup_path = os.path.join(backup_dir, backup_name)
 
 			try:
 				print(f"Backing up {name} ({image}) to {backup_path}")
@@ -195,10 +193,13 @@ def backup_volumes():
 def main():
 	try:
 		load_dotenv()
-		script_path = os.path.abspath(__file__)
 		aws_endpoint_bucket = os.environ["AWS_ENDPOINT_BUCKET"]
-		
-		os.makedirs(BACKUP_DIR, exist_ok=True)
+
+		abs_script_path = os.path.realpath(__file__)
+		abs_script_dir = os.path.dirname(abs_script_path)
+		abs_db_dump_dir = os.path.join(abs_script_dir, "db-dump-temp")
+
+		os.makedirs(abs_db_dump_dir, exist_ok=True)
 
 		server_name = get_server_name()
 		s3_endpoint, s3_bucket = aws_endpoint_bucket.split(sep="/", maxsplit=1)
@@ -221,11 +222,11 @@ def main():
 				print("Restic repo already exists.")
 
 			print("Creating cron.daily...")
-			run_command(f"ln -sf '{script_path}' /etc/cron.daily/server-backup")
+			run_command(f"ln -sf '{abs_script_path}' /etc/cron.daily/server-backup")
 		elif len(sys.argv) > 1 and sys.argv[1] == "uninstall":
 			print("Removing cron.daily...")
 			os.remove("/etc/cron.daily/server-backup")
-			print(f"Done. You'll need to manually delete the directory {os.path.dirname(script_path)}")
+			print(f"Done. You'll need to manually delete the directory {abs_script_dir}")
 		else:
 			print("Backing up... " + server_name)
 			print(" s3 endpoint", s3_endpoint)
@@ -233,7 +234,7 @@ def main():
 			print(" restic repo " + restic_repo)
 			print(" db bucket path " + db_bucket_path)
 
-			if (backup_databases(s3_endpoint, db_bucket_path) and backup_volumes()):
+			if (backup_databases(abs_db_dump_dir, s3_endpoint, db_bucket_path) and backup_volumes()):
 				send_report("All backups were successful.", True)
 			else:
 				print("Something failed.")

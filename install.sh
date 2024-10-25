@@ -17,4 +17,6 @@ if [ ! -f $INSTALL_DIR/.env ]; then
 fi
 
 echo -e "\nSuccess, but it's not running yet!"
-echo -e "Please edit the .env file '$INSTALL_DIR/.env' and then run '$INSTALL_DIR/backup.py install' to finish installation."
+echo -e "\nTo finished installation, please do the following:"
+echo -e "- edit the configuration at '$INSTALL_DIR/.env'"
+echo -e "- finish installation by running '$INSTALL_DIR/backup.py install'"

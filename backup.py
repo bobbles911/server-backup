@@ -250,18 +250,22 @@ def main():
 			if db_backup_success and vol_backup_success:
 				send_report(
 					"All backups were successful.\n"
-					"\n"
-					f"Server name: {server_name}\n"
-					f"S3 Endpoint: {s3_endpoint}\n"
-					f"S3 Bucket: {s3_bucket}\n"
-					f"Database backup path: {db_bucket_path}\n"
-					f"Restic repository: {restic_repo}\n"
-					"\n"
-					"Databases backed up:\n"
+					+ "\n"
+					+ f"Server name: {server_name}\n"
+					+ f"S3 Endpoint: {s3_endpoint}\n"
+					+ f"S3 Bucket: {s3_bucket}\n"
+					+ f"Database backup path: {db_bucket_path}\n"
+					+ f"Restic repository: {restic_repo}\n"
+					+ "\n"
+					+ "Databases backed up:\n"
 					+ "".join([f" {name}\n" for name in db_names])
 					+ "\n"
 					+ "Paths backed up with restic:\n"
 					+ "".join([f" {path}\n" for path in vol_paths])
+					+ "\n"
+					+ "Restic repository commands:\n"
+					+ f" restic -r {restic_repo} mount /mnt/restic"
+					+ f" restic -r {restic_repo} snapshots"
 				, True)
 			else:
 				print("Something failed.")

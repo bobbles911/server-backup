@@ -198,12 +198,13 @@ def backup_volumes():
 
 def main():
 	try:
-		load_dotenv()
-		aws_endpoint_bucket = os.environ["AWS_ENDPOINT_BUCKET"]
-
 		abs_script_path = os.path.realpath(__file__)
 		abs_script_dir = os.path.dirname(abs_script_path)
 		abs_db_dump_dir = os.path.join(abs_script_dir, "db-dump-temp")
+		abs_dotenv_path = os.path.join(abs_script_dir, ".env")
+
+		load_dotenv(abs_dotenv_path)
+		aws_endpoint_bucket = os.environ["AWS_ENDPOINT_BUCKET"]
 
 		os.makedirs(abs_db_dump_dir, exist_ok=True)
 

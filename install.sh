@@ -4,9 +4,19 @@ echo "Installing..."
 INSTALL_DIR=~/.server-backup
 
 apt update
-apt install -y restic python3-dotenv pipx
-pipx ensurepath
-pipx install awscli
+apt install -y restic python3-dotenv unzip
+
+# Install aws cli
+if ! command -v aws; then
+	echo "Installing aws-cli..."
+	curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+	unzip awscliv2.zip
+	rm awscliv2.zip
+	./aws/install
+	rm -rf aws
+fi
+
+echo "Installing script..."
 
 mkdir -p $INSTALL_DIR
 

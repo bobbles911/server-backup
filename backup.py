@@ -106,10 +106,10 @@ def get_backup_definition(container_id, image, name):
 		process_name = backup_definition[1]
 
 		pattern_matches = any(pattern in image.lower() or pattern in name.lower() for pattern in patterns)
-		process_matches = process_name in get_processes(container_id)
+		process_matched = process_name in get_main_process(container_id)
 
 		# Must match by container image/name and also contain a correct process
-		if pattern_matches and process_matches:
+		if pattern_matches and process_matched:
 			return backup_definition
 	
 	return None
@@ -120,9 +120,9 @@ def get_containers():
 	# container_id, image, name for each
 	return [line.split(maxsplit=2) for line in output.splitlines()]
 
-# Get processes
-def get_processes(container_id):
-	return run_command(f"docker exec {container_id} ps aux")
+# Get commandline used to launch main process
+def get_main_process(container_id):
+	return run_command(f"docker exec {container_id} cat /proc/1/cmdline")
 
 # Get environment variables from a container
 def get_env_vars(container_id):

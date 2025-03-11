@@ -93,18 +93,23 @@ class RedisProvider:
 		# Copy the dump file from the container to the backup directory
 		run_command(f"docker cp {container_id}:/data/dump.rdb {backup_path}")
 
-def get_backup_definition(image, name):
+def get_backup_definition(container_id, image, name):
 	BACKUP_DEFINITIONS = [
-		(["mariadb"], MysqlMariaDBProvider(), "mariadb.sql"),
-		(["mysql"], MysqlMariaDBProvider(), "mysql.sql"),
-		(["postgres"], PostgresProvider(), "postgres.sql"),
-		(["redis"], RedisProvider(), "rdb")
+		(["mariadb"], "mysqld", MysqlMariaDBProvider(), "mariadb.sql"),
+		(["mysql"], "mysqld", MysqlMariaDBProvider(), "mysql.sql"),
+		(["postgres"], "postgres", PostgresProvider(), "postgres.sql"),
+		(["redis"], "redis-server", RedisProvider(), "rdb")
 	]
 
 	for backup_definition in BACKUP_DEFINITIONS:
 		patterns = backup_definition[0]
+		process_name = backup_definition[1]
 
-		if any(pattern in image.lower() or pattern in name.lower() for pattern in patterns):
+		pattern_matches = any(pattern in image.lower() or pattern in name.lower() for pattern in patterns)
+		process_matches = process_name in get_processes(container_id)
+
+		# Must match by container image/name and also contain a correct process
+		if pattern_matches and process_matches:
 			return backup_definition
 	
 	return None
@@ -114,6 +119,10 @@ def get_containers():
 	output = run_command("docker ps --format '{{.ID}} {{.Image}} {{.Names}}'")
 	# container_id, image, name for each
 	return [line.split(maxsplit=2) for line in output.splitlines()]
+
+# Get processes
+def get_processes(container_id):
+	return run_command(f"docker exec {container_id} ps aux")
 
 # Get environment variables from a container
 def get_env_vars(container_id):
@@ -140,10 +149,10 @@ def backup_databases(backup_dir, s3_endpoint, db_bucket_path):
 
 	for container_info in containers:
 		container_id, image, name = container_info
-		backup_definition = get_backup_definition(image, name)
+		backup_definition = get_backup_definition(container_id, image, name)
 
 		if backup_definition:
-			_, backup_provider, ext = backup_definition
+			_, _, backup_provider, ext = backup_definition
 			env_vars = get_env_vars(container_id)
 			db_name = backup_provider.get_db_name(env_vars)
 

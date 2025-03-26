@@ -47,6 +47,13 @@ def run_command(command):
 	#print(result.stdout.strip())
 	return result.stdout.strip()
 
+def run_command_nocheck(command):
+	try:
+		result = subprocess.run(command, shell=True, text=True, capture_output=True, check=True)
+		return result.stdout.strip()
+	except subprocess.CalledProcessError:
+		return None
+
 def get_server_name():
 	return run_command("hostname") + "-" + run_command("cat /etc/machine-id")
 
@@ -57,7 +64,7 @@ def get_db_bucket_path(s3_bucket, server_name):
 	return f"{s3_bucket}/databases/{server_name}"
 
 def binary_exists_in_container(container_id, binary_name):
-	return True if run_command(f"docker exec {container_id} sh -c 'command -v \"{binary_name}\"'") else False
+	return run_command_nocheck(f"docker exec {container_id} sh -c 'command -v \"{binary_name}\"'") is not None
 
 class PostgresProvider:
 	def get_db_name(self, env_vars):

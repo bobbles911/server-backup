@@ -57,7 +57,7 @@ def get_db_bucket_path(s3_bucket, server_name):
 	return f"{s3_bucket}/databases/{server_name}"
 
 def binary_exists_in_container(container_id, binary_name):
-	return True if run_command(f"docker exec {container_id} which '{binary_name}'") else False
+	return True if run_command(f"docker exec {container_id} sh -c 'command -v \"{binary_name}\"'") else False
 
 class PostgresProvider:
 	def get_db_name(self, env_vars):

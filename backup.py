@@ -199,7 +199,19 @@ def backup_volumes():
 			print("Backing up", backup_path)
 
 			try:
-				run_command(f"restic backup --verbose --exclude-caches '{backup_path}'")
+				try:
+					run_command(f"restic backup --verbose --exclude-caches '{backup_path}'")
+				except subprocess.CalledProcessError as e:
+					if e.returncode == 3:
+						error_lines = [line for line in e.stderr.splitlines() if line.startswith("error:")]
+						if all("no such file or directory" in line for line in error_lines):
+							print(f"Ignoring restic errors for {backup_path} as they are all 'no such file or directory'")
+						else:
+							send_report(f"Volume backup failed: {backup_path}\n{e.stderr}")
+							success = False
+					else:
+						send_report(f"Volume backup failed: {backup_path}\n{e.stderr}")
+						success = False
 			except Exception as e:
 				send_report(f"Volume backup failed: {backup_path}\n{e}")
 				success = False
